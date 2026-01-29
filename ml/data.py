@@ -1,7 +1,8 @@
-import numpy as np
-from sklearn.preprocessing import LabelBinarizer, OneHotEncoder
+import numpy as np # usado para criar array e juntar
+from sklearn.preprocessing import LabelBinarizer, OneHotEncoder # One = tranforma colunas categoricas texto em varias colunas 0/1 - Label=tranforma o rotulo label em 0/1
 
 
+# X = é o dataframe - categorical=lista com nomes das colunas categoricas - label= nome da coluna alvo - training=se estiver treinando ele treina encode e binazir se nao apenas aplica
 def process_data(
     X, categorical_features=[], label=None, training=True, encoder=None, lb=None
 ):
@@ -44,20 +45,28 @@ def process_data(
         passed in.
     """
 
+    # Caso a label seja passada = Label é a coluna alvo
     if label is not None:
-        y = X[label]
-        X = X.drop([label], axis=1)
+        y = X[label] # Vai pegar a coluna alvo
+        X = X.drop([label], axis=1) # Vai remover a coluna alvo do dataframe features
     else:
-        y = np.array([])
+        y = np.array([]) # Se não foi inferencia sem label
 
+    # Separa as colunas do dataframe X em categoricas e numericas
     X_categorical = X[categorical_features].values
     X_continuous = X.drop(*[categorical_features], axis=1)
 
+    # Caso esteja treinando
     if training is True:
+        # Vai criar o OnehotEncoder - sparse_output=false(retorna um array normal e nao matriz) - handle_unkon=se aparece uma categoria nova na inferencia nao quebra, vai gerar zeros
         encoder = OneHotEncoder(sparse_output=False, handle_unknown="ignore")
+        # Cria o binarizador do label
         lb = LabelBinarizer()
+        # Aprende o mapeamento das categorias git e já tranforma em one-hot
         X_categorical = encoder.fit_transform(X_categorical)
+        # Aprende como transforma a label em transforma em 0/1
         y = lb.fit_transform(y.values).ravel()
+
     else:
         X_categorical = encoder.transform(X_categorical)
         try:
