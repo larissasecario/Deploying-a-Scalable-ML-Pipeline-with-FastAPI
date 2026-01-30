@@ -1,109 +1,92 @@
 # Model Card
 
-For additional information see the Model Card paper: [https://arxiv.org/pdf/1810.03993.pdf](https://arxiv.org/pdf/1810.03993.pdf)
-
----
-
 ## Model Details
+This is a supervised machine learning model for **binary classification** that predicts whether a person’s annual income is **>50K** or **<=50K** based on demographic and employment-related features from the Census Income (Adult) dataset.
 
-Este é um modelo de Machine Learning de **classificação binária** criado para prever se a renda anual de uma pessoa é **maior que 50 mil dólares (>50K)** ou **menor ou igual a 50 mil dólares (≤50K)**.
-
-O modelo foi treinado usando dados demográficos e profissionais do conjunto **Census Income (Adult Dataset)**.
-Variáveis como educação, tipo de trabalho, ocupação, estado civil, sexo e país de origem são usadas como entrada para o modelo.
-
-O pipeline inclui:
-
-- Processamento de dados (One-Hot Encoding para variáveis categóricas)
-- Treinamento de modelo supervisionado
-- Avaliação de desempenho geral e por grupos (fatias de dados)
-
----
+- **Model type:** RandomForestClassifier (scikit-learn)
+- **Task:** Binary classification
+- **Target label:** `salary` mapped to {">50K", "<=50K"}
+- **Pipeline preprocessing:**
+  - One-hot encoding for categorical features using `OneHotEncoder(handle_unknown="ignore")`
+  - Label binarization using `LabelBinarizer()`
+- **Training configuration:**
+  - `n_estimators=200`
+  - `random_state=42`
+  - `n_jobs=-1`
 
 ## Intended Use
+**Primary intended use:** Educational purposes and demonstration of a scalable ML pipeline deployed with FastAPI, including training, inference, and subgroup (slice) performance evaluation.
 
-Este modelo foi desenvolvido **para fins educacionais** e para demonstrar um pipeline completo de Machine Learning.
+**Intended users:** Students, reviewers, and practitioners learning MLOps fundamentals.
 
-Ele pode ser usado para:
+**Out-of-scope use:** This model must **not** be used for real-world decision-making in high-stakes domains (e.g., hiring, credit approval, insurance, benefits), since it is trained on historical census data that may encode societal biases and has not been validated for deployment in production decision systems.
 
-- Estudar classificação binária
-- Avaliar métricas como precisão, recall e F1-score
-- Analisar como o desempenho do modelo varia entre diferentes grupos da população
+## Factors
+The model may exhibit different performance across subgroups defined by categorical factors present in the dataset, including (but not limited to):
 
-**Este modelo não deve ser utilizado para decisões reais** que afetem pessoas, como contratação, crédito, benefícios ou qualquer outro processo sensível.
+- `sex`
+- `race`
+- `native-country`
+- `education`
+- `workclass`
+- `occupation`
+- `marital-status`
+- `relationship`
 
----
-
-## Training Data
-
-O modelo foi treinado com o conjunto de dados **Census Income (Adult Dataset)**.
-
-Cada registro representa uma pessoa e inclui informações como:
-
-- Idade
-- Tipo de trabalho (_workclass_)
-- Nível de educação
-- Estado civil
-- Ocupação
-- Relacionamento
-- Raça
-- Sexo
-- País de origem
-
-A variável alvo é:
-
-- **salary** — indica se a renda anual é maior que 50K ou não.
-
-Os dados foram divididos em:
-
-- **80% para treino**
-- **20% para teste**
-
----
-
-## Evaluation Data
-
-A avaliação foi feita usando o conjunto de **teste (20%)**, que não foi usado no treinamento do modelo.
-
-Também foi realizada uma avaliação por **fatias de dados**, onde o desempenho do modelo foi medido separadamente para diferentes valores de variáveis categóricas (por exemplo, diferentes tipos de trabalho, níveis de educação, sexo, etc.).
-
----
+Slice-based performance evaluation is reported per value of each categorical feature.
 
 ## Metrics
+The model is evaluated using:
+- **Precision**
+- **Recall**
+- **F1-score** (implemented as F-beta with `beta=1`)
 
-As seguintes métricas foram utilizadas para avaliar o modelo:
+### Overall Test Performance (20% held-out test set)
+The following results were obtained on the stratified 20% test split:
 
-- **Precision (Precisão)**: mede quantas previsões positivas do modelo estavam corretas.
-- **Recall**: mede quantos dos casos positivos reais foram corretamente identificados pelo modelo.
-- **F1-score (F-beta com beta=1)**: média harmônica entre precisão e recall.
+- **Precision:** 0.7338  
+- **Recall:** 0.6365  
+- **F1-score:** 0.6817  
 
-Desempenho geral do modelo no conjunto de teste (exemplo):
+### Slice-Based Performance
+Performance varies significantly across subgroups.
 
-- **Precision:** 0.73
-- **Recall:** 0.63
-- **F1-score:** 0.68
+- **Best-performing large subgroup:**  
+  occupation = **Prof-specialty** (n = 818)  
+  Precision: 0.7793 | Recall: 0.8139 | F1-score: **0.7962**
 
-Além disso, as métricas foram calculadas para diferentes grupos da população (fatias dos dados), e os resultados foram armazenados no arquivo `slice_output.txt`. Foi observado que o desempenho varia entre grupos, o que pode indicar possíveis desigualdades no comportamento do modelo.
+- **Worst-performing subgroup with meaningful size:**  
+  education = **7th–8th** (n = 120)  
+  Precision: 1.0000 | Recall: 0.0000 | F1-score: **0.0000**
 
----
+Across slices, F1-score ranged approximately from **0.00 to ~0.80**, indicating substantial performance disparities across demographic and socioeconomic groups. Several very small-population country groups showed extreme values (F1 = 0 or 1), but these results may be unstable due to very low sample sizes.
+
+## Evaluation Data
+Evaluation is performed on a **20% stratified hold-out test split** from the Census Income (Adult) dataset. The test set is not used during model training.
+
+In addition to overall evaluation, the model is evaluated on **categorical slices** to detect subgroup performance differences. Slice results are stored in `slice_output.txt`.
+
+## Training Data
+Training uses the **Census Income (Adult) dataset**, where each record contains demographic and employment-related attributes such as:
+
+age, workclass, education, marital-status, occupation, relationship, race, sex, hours-per-week, native-country, etc.
+
+The training set corresponds to **80%** of the dataset, stratified by the target label.
 
 ## Ethical Considerations
+This dataset contains sensitive attributes (e.g., sex, race, native-country). As a result:
+- The model may learn and reproduce historical bias patterns.
+- Performance disparities across subgroups are observed.
+- The model could be misused in ways that unfairly impact individuals.
 
-Este modelo utiliza dados sensíveis como sexo, raça e país de origem. Isso significa que ele pode aprender padrões que refletem desigualdades presentes na sociedade.
-
-Existe o risco de:
-
-- O modelo ter desempenho diferente entre grupos
-- Reforçar vieses existentes nos dados
-- Produzir previsões menos precisas para certos grupos
-
-Por isso, ele **não deve ser usado em aplicações reais** que impactem diretamente pessoas.
-
----
+Therefore, this model should not be used for real-world decisions that directly impact individuals without extensive fairness analysis, bias mitigation, and careful validation.
 
 ## Caveats and Recommendations
-
-- O modelo foi treinado com um conjunto de dados específico e pode não generalizar bem para outras populações.
-- As previsões dependem fortemente da qualidade e representatividade dos dados.
-- O modelo é relativamente simples e não foi profundamente ajustado.
-- Recomenda-se sempre avaliar o desempenho por grupos (análise de fatias) antes de qualquer uso.
-- Para aplicações reais, seriam necessários testes adicionais, análise de viés e validação ética.
+- The model was trained on a specific dataset and may not generalize well to other populations or time periods.
+- Slice-based evaluation shows substantial disparities (e.g., very low performance for some education and country subgroups), which should be reviewed before any deployment.
+- Future improvements could include:
+  - hyperparameter tuning,
+  - alternative models and calibration,
+  - bias mitigation techniques,
+  - improved handling of low-sample subgroups,
+  - more detailed documentation of data provenance and intended deployment constraints.
